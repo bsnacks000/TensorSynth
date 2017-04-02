@@ -1,4 +1,6 @@
 import pandas as pd
+import json
+import os
 from abc import ABCMeta, abstractmethod
 
 
@@ -21,7 +23,12 @@ class Encoder(object):
 
         # initialize all values
         self.scjson_filepath = scjson_filepath
-        self.decoder_config = {'path': self.scjson_filepath, 'type':None, 'encodings':{}}    
+        self.decoder_config = {
+            'path': self.scjson_filepath, 
+            'type':None, 
+            'encodings':{},
+            'word_sequence': None
+        }    
 
         self.df_raw = None
         
@@ -73,11 +80,26 @@ class Encoder(object):
         for i in range(1, len(self.binned_df.columns)):
             word_series += self.binned_df.iloc[:,i].astype(str)
 
+        self.decoder_config['word_sequence'] = list(word_series) # store as plain list in json 
+            
         return word_series
 
-    def make_config_json(self, filepath):
+    def make_config_json(self, output_filepath):
         
-        pass
+        # TODO need to test valid file path - raise error if invalid
+        # TODO need to test to make sure config format is correct or raise custom exception
+
+        with open(output_filepath, 'w') as f:
+            json.dump(self.decoder_config, f)
+
+
+    def get_output_seq(self):
+        # TODO possibly check here to make sure output series is valid 
+        return self.output_seq
+
+    def get_encodings(self):
+        # TODO possibly check here to make sure encodings is valid
+        return decoder_config['encodings']
 
 
 
@@ -85,6 +107,8 @@ class EncoderProxySynth(Encoder):
 
     '''
     imports and bins according to the midi_grain_proxy specification
+    exports 
+    :param: scjson_filepath - 
 
     '''
 
@@ -94,14 +118,13 @@ class EncoderProxySynth(Encoder):
 
         #set all values
         self.decoder_config['type'] = 'midi_grain_proxy'
-
+        
         self.df_raw = self._import_json(self.scjson_filepath)
         
         self._clean_timestamps()
         self._set_decoder_config()
 
-        self.binned_df = self._create_binned_df()
-        
+        self.binned_df = self._create_binned_df()    
         self.output_seq = self._create_output_seq()
 
 
@@ -114,9 +137,9 @@ class EncoderProxySynth(Encoder):
                 .drop('id',axis=1) \
                 .reset_index(drop=True)
 
-            # check formatting here and adhere to synth_type=proxy specs raise tsInputFormatting
+            # TODO check formatting here and adhere to synth_type=proxy specs raise tsRawInputFormattingExc
 
-        except tsInputFormattingException as err:
+        except tsRawInputFormattingException as err:
             print('error handling stuff here')        
             raise   # will re-raise this exception and halt execution
 
@@ -179,7 +202,6 @@ class EncoderServerSynth(Encoder):
     Place holder for midi_grain_server specification
 
     '''
-
     pass
 
 
