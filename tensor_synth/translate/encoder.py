@@ -11,6 +11,8 @@ class Encoder(object):
     Abstract Base class for tensor_synth Encoder objects
     Subclasses are instantiated from this class that adhere to specific IO specs
     :param: scjson_filepath: path to the sc input raw data file in json format
+
+    must overwrite _import_json(), _set_decoder_config(), _create_binned_df() in subclass
     """
 
     __metaclass__ = ABCMeta
@@ -125,20 +127,20 @@ class EncoderProxySynth(Encoder):
         ''' store the original ranged values of binnings... this data is used by a Decoder object to retranslate to midi format '''
 
         # this covers all except freq which are left as integers for now...
-        self.decoder_config['encodings']['amp'] = pd.cut(self.df_raw['amp'], bspecs.midi_bins4()).cat.categories
-        self.decoder_config['encodings']['freq_dev'] = pd.cut(self.df_raw['freq_dev'], bspecs.midi_bins16()).cat.categories
+        self.decoder_config['encodings']['amp'] = bspecs.get_binning_specs(pd.cut(self.df_raw['amp'], bspecs.midi_bins4()).cat.categories)
+        self.decoder_config['encodings']['freq_dev'] = bspecs.get_binning_specs(pd.cut(self.df_raw['freq_dev'], bspecs.midi_bins16()).cat.categories)
         
-        self.decoder_config['encodings']['grain_dur'] = pd.cut(self.df_raw['grain_dur'], bspecs.midi_bins16()).cat.categories
-        self.decoder_config['encodings']['grain_dur_dev'] = pd.cut(self.df_raw['grain_dur_dev'],bspecs.midi_bins16()).cat.categories
+        self.decoder_config['encodings']['grain_dur'] = bspecs.get_binning_specs(pd.cut(self.df_raw['grain_dur'], bspecs.midi_bins16()).cat.categories)
+        self.decoder_config['encodings']['grain_dur_dev'] = bspecs.get_binning_specs(pd.cut(self.df_raw['grain_dur_dev'],bspecs.midi_bins16()).cat.categories)
         
-        self.decoder_config['encodings']['grain_rate']  = pd.cut(self.df_raw['grain_rate'],bspecs.midi_bins16()).cat.categories
-        self.decoder_config['encodings']['grain_rate_dev'] = pd.cut(self.df_raw['grain_rate_dev'],bspecs.midi_bins16()).cat.categories
+        self.decoder_config['encodings']['grain_rate']  = bspecs.get_binning_specs(pd.cut(self.df_raw['grain_rate'],bspecs.midi_bins16()).cat.categories)
+        self.decoder_config['encodings']['grain_rate_dev'] = bspecs.get_binning_specs(pd.cut(self.df_raw['grain_rate_dev'],bspecs.midi_bins16()).cat.categories)
         
-        self.decoder_config['encodings']['n_voices'] = pd.cut(self.df_raw['n_voices'],bspecs.midi_bins8()).cat.categories
-        self.decoder_config['encodings']['rel'] = pd.cut(self.df_raw['rel'], bspecs.midi_bins4()).cat.categories
+        self.decoder_config['encodings']['n_voices'] = bspecs.get_binning_specs(pd.cut(self.df_raw['n_voices'],bspecs.midi_bins8()).cat.categories)
+        self.decoder_config['encodings']['rel'] = bspecs.get_binning_specs(pd.cut(self.df_raw['rel'], bspecs.midi_bins4()).cat.categories)
 
-        self.decoder_config['encodings']['duration'] = pd.cut(self.df_raw['duration'],bspecs.dur_bins12()).cat.categories
-        self.decoder_config['encodings']['inter_event_duration'] = pd.cut(self.df_raw['inter_event_duration'],bspecs.dur_bins12()).cat.categories
+        self.decoder_config['encodings']['duration'] = bspecs.get_binning_specs(pd.cut(self.df_raw['duration'],bspecs.dur_bins12()).cat.categories)
+        self.decoder_config['encodings']['inter_event_duration'] = bspecs.get_binning_specs(pd.cut(self.df_raw['inter_event_duration'],bspecs.dur_bins12()).cat.categories)
 
 
     def _create_binned_df(self):
