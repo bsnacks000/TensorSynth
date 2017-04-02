@@ -4,27 +4,30 @@ Custom exceptions for tensor_synth
 
 class tsBaseException(Exception):
     """
-    Base Exception class for tensor_synth
+    base exception class for tensor_synth
     """
 
-    def __init__(self, obj, msg=None):
+    def __init__(self, msg=None):
         if msg is None:                        # Set some default useful error message
-            msg = "A tensor_synth error occured: {}".format(obj)
+            msg = "A tensor_synth error occured: {0}".format(obj)
         
         super(tsBaseException, self).__init__(msg)
        
-        self.obj = obj  # the object that caused the error
-        
 
 
-class tsRawDFInputException(tsBaseException, IOError):
+class tsInputFormattingException(tsBaseException, IOError):
     """
-    Thrown if there is an import problem with json file
+    thrown if there is an import problem with json file
     """
     def __init__(self, filepath):
-        msg = "The sc_input json file is not correctly formatted: {}".format(filepath)
-        super(tsRawDFInputException, self).__init__(msg)
+        msg = "The sc_input json file {0} is not properly formatted for synth_type={1} ".format(filepath,synth_type)
+        super(tsInputFormatException, self).__init__(msg=msg)
 
         self.filepath = filepath
+
+
+
+
+
 
 
