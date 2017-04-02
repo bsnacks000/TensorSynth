@@ -18,6 +18,5 @@ def main():
     print(x.decoder_config)
 
 
-
 if __name__ == '__main__':
     main()

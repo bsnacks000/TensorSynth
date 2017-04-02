@@ -1,4 +1,6 @@
 import pandas as pd
+from abc import ABCMeta, abstractmethod
+
 
 from tensor_synth.exceptions import *
 import tensor_synth.translate.binning_specs as bspecs
@@ -6,10 +8,12 @@ import tensor_synth.translate.binning_specs as bspecs
 
 class Encoder(object):
     """
-    Base class for tensor_synth Encoder objects
-    Sublcasses are instantiated from this class that adhere to specific IO specs
+    Abstract Base class for tensor_synth Encoder objects
+    Subclasses are instantiated from this class that adhere to specific IO specs
     :param: scjson_filepath: path to the sc input raw data file in json format
     """
+
+    __metaclass__ = ABCMeta
 
     def __init__(self, scjson_filepath):
 
@@ -22,14 +26,22 @@ class Encoder(object):
         self.binned_df = None
         self.output_seq = None
 
-
+    @abstractmethod
     def _import_json(self):
 
         pass # this needs to be overwritten for each subclass
 
+    @abstractmethod
     def _set_decoder_config(self):
 
         pass # this needs to be overwritten for each subclass
+
+    @abstractmethod
+    def _create_binned_df(self):
+        '''
+        creates the binned_df for synth_type=proxy
+        '''
+        pass  # this needs to be overwritten in subclass
 
 
     def _clean_timestamps(self):
@@ -48,19 +60,12 @@ class Encoder(object):
         self.df_raw = self.df_raw.drop(['noteOn_timestamp','noteOff_timestamp'],axis=1)
 
 
-    def _create_binned_df(self):
-        '''
-        creates the binned_df for synth_type=proxy
-        '''
-        pass  # this needs to be overwritten in subclass
-
-
+    
     def _create_output_seq(self):
 
         '''
         concatenates all columns to form a tensor_synth 'word' sequence as a pd.Series object
         '''
-
         word_series = self.binned_df.iloc[:,0].astype(str) + '_' # freq first then string of categories 
         
         for i in range(1, len(self.binned_df.columns)):
