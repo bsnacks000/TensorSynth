@@ -25,8 +25,13 @@ class tsRawInputFormattingException(tsBaseException, IOError):
 
 
 
-
 class tsConfigFileFormatException(tsBaseException, ValueError):
     """ thrown if formatting error for JSON config file in Encoder class"""
+
+    def __init__(self, filepath):
+        msg = "The decoder config json file {0} is not properly formatted for synth_type={1} ".format(filepath,synth_type)
+        super(tsConfigFileFormatException, self).__init__(msg=msg)
+
+        self.filepath = filepath
 
 

@@ -69,7 +69,6 @@ class Encoder(object):
         self.df_raw = self.df_raw.drop(['noteOn_timestamp','noteOff_timestamp'],axis=1)
 
 
-    
     def _create_output_seq(self):
 
         '''
