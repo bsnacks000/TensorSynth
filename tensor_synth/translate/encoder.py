@@ -128,7 +128,11 @@ class EncoderProxySynth(Encoder):
 
 
     def _import_json(self, json_filepath):
-        
+        print('inside import')
+        # with open(json_filepath) as data_file:    
+        #     data = json.load(data_file)
+        #     print(data)
+
         try:
 
             df_raw = pd.read_json(json_filepath,orient='index') \
@@ -137,6 +141,7 @@ class EncoderProxySynth(Encoder):
                 .reset_index(drop=True)
 
             # TODO check formatting here and adhere to synth_type=proxy specs raise tsRawInputFormattingExc
+            #print(df_raw)
 
         except tsRawInputFormattingException as err:
             print('error handling stuff here')        
@@ -166,32 +171,33 @@ class EncoderProxySynth(Encoder):
 
 
     def _create_binned_df(self):
-        ''' create the binned_df dataframe '''
+        ''' create the binned_df dataframe -- all cuts include lowest to highest '''
 
         binned_df = pd.DataFrame(columns=self.df_raw.columns)
 
-        binned_df['amp'] = pd.cut(self.df_raw['amp'], bspecs.midi_bins4(),labels=bspecs.midi_labels4())
-        binned_df['freq_dev'] = pd.cut(self.df_raw['freq_dev'], bspecs.midi_bins16(),labels=bspecs.midi_labels16())
+        binned_df['amp'] = pd.cut(self.df_raw['amp'], bspecs.midi_bins4(),labels=bspecs.midi_labels4(), include_lowest=True)
+        binned_df['freq_dev'] = pd.cut(self.df_raw['freq_dev'], bspecs.midi_bins16(),labels=bspecs.midi_labels16(), include_lowest=True)
         
-        binned_df['grain_dur'] = pd.cut(self.df_raw['grain_dur'], bspecs.midi_bins16(),labels=bspecs.midi_labels16())
-        binned_df['grain_dur_dev'] = pd.cut(self.df_raw['grain_dur_dev'],bspecs.midi_bins16(),labels=bspecs.midi_labels16())
+        binned_df['grain_dur'] = pd.cut(self.df_raw['grain_dur'], bspecs.midi_bins16(),labels=bspecs.midi_labels16(), include_lowest=True)
+        binned_df['grain_dur_dev'] = pd.cut(self.df_raw['grain_dur_dev'],bspecs.midi_bins16(),labels=bspecs.midi_labels16(), include_lowest=True)
         
-        binned_df['grain_rate']  = pd.cut(self.df_raw['grain_rate'],bspecs.midi_bins16(),labels=bspecs.midi_labels16())
-        binned_df['grain_rate_dev'] = pd.cut(self.df_raw['grain_rate_dev'],bspecs.midi_bins16(),labels=bspecs.midi_labels16())
+        binned_df['grain_rate']  = pd.cut(self.df_raw['grain_rate'],bspecs.midi_bins16(),labels=bspecs.midi_labels16(), include_lowest=True)
+        binned_df['grain_rate_dev'] = pd.cut(self.df_raw['grain_rate_dev'],bspecs.midi_bins16(),labels=bspecs.midi_labels16(),include_lowest=True)
         
-        binned_df['n_voices'] = pd.cut(self.df_raw['n_voices'],bspecs.midi_bins8(),labels=bspecs.midi_labels8())
-        binned_df['rel'] = pd.cut(self.df_raw['rel'], bspecs.midi_bins4(),labels=bspecs.midi_labels4())
+        binned_df['n_voices'] = pd.cut(self.df_raw['n_voices'],bspecs.midi_bins8(),labels=bspecs.midi_labels8(),include_lowest=True)
+        binned_df['rel'] = pd.cut(self.df_raw['rel'], bspecs.midi_bins4(),labels=bspecs.midi_labels4(), include_lowest=True)
 
-        binned_df['duration'] = pd.cut(self.df_raw['duration'],bspecs.dur_bins12(),labels=bspecs.dur_labels12())
-        binned_df['inter_event_duration'] = pd.cut(self.df_raw['inter_event_duration'],bspecs.dur_bins12(),labels=bspecs.dur_labels12())
+        binned_df['duration'] = pd.cut(self.df_raw['duration'],bspecs.dur_bins12(),labels=bspecs.dur_labels12(), include_lowest=True)
+        binned_df['inter_event_duration'] = pd.cut(self.df_raw['inter_event_duration'],bspecs.dur_bins12(),labels=bspecs.dur_labels12(), include_lowest=True)
 
         binned_df['freq'] = self.df_raw['freq']   # does not bin the freq column
-        
+
         # realign rows
         cols = list(binned_df)   
         cols[1], cols[0] = cols[0], cols[1]
         binned_df = binned_df.ix[:,cols]  # works for this sample, but may need to explicitly reorder if json file inputs differently
-        binned_df = binned_df.dropna().reset_index(drop=True)  # need to do mean substitution here... 
+                                                                # TODO we should raise an Exception here if there are more than N number of rows dropped
+        binned_df = binned_df.dropna().reset_index(drop=True)  # All values should be covered... this is just for extra protection 
 
         return binned_df
 
