@@ -115,11 +115,15 @@ MIDIdef.noteOff(\noteOffTest, {|vel,nn|
 	// free up resources
 	g.pattern_buff[nn].free(e.rel);
 	g.pattern_buff[nn] = nil;
+
 	~pattern.free;
+	//~pattern.end;
 	// finish loading data into dictionary
 	g.temp_buff[nn].noteOff_timestamp = Clock.seconds;
-	g.output_dict.add(g.temp_buff[nn].id -> g.temp_buff[nn]);
+	g.output_dict.add(g.temp_buff[nn].id -> g.temp_buff[nn].deepCopy);
 	g.temp_buff[nn] = nil;
+
+
 }).permanent_(true);
 
 
@@ -181,5 +185,4 @@ MIDIdef.cc(\ccGrainDurDev,{|value, cc_num|
 
 
 //JSON export
-File.use("export.json".resolveRelative,"w",{|f| f.write(JSON.stringify(g.output_dict))});
-
+File.use("grain_improv3.json".resolveRelative,"w",{|f| f.write(JSON.stringify(g.output_dict))});
