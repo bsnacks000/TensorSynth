@@ -38,7 +38,9 @@ def midi_labels16():
     
 
 def dur_bins12():
-    return np.logspace(-1,1.25,12)
+    dur_bins = np.zeros(12)
+    dur_bins[1:] = np.logspace(-1,1.25,11)
+    return dur_bins
     
 
 def dur_labels12():
