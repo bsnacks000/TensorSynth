@@ -129,9 +129,6 @@ class EncoderProxySynth(Encoder):
 
     def _import_json(self, json_filepath):
         print('inside import')
-        # with open(json_filepath) as data_file:    
-        #     data = json.load(data_file)
-        #     print(data)
 
         try:
 
