@@ -29,22 +29,24 @@ class Decoder(object):
 
         self.encoding_dict = None
 
+
     @abstractmethod
     def _import_config(self):
 
         pass # this needs to be overwritten for each subclass 
 
     @abstractmethod
-    def _unbin_df(self):(self):
-        
-        pass
+    def _unbin_df(self):
+
+        pass # this needs to be overwritten for each subclass 
 
 
     @abstractmethod
     @staticmethod
     def unbin_callback(row, bin_data, col_name):
 
-        pass
+        pass # this needs to be overwritten for each subclass 
+
 
     def export_output_to_json(filepath):
         ''' exports the converted df'''
@@ -82,7 +84,9 @@ class DecoderProxySynth(Decoder):
 
     @staticmethod
     def unbin_callback(row, bin_data, col_name):  #TODO error check/unittests
-        
+        ''' callback for unbin df -- unbins data based on the ProxyDecoder synth spec '''
+
+
         inputs = [string.ascii_lowercase[i] for i in range(len(bin_data))]
         bin_indx = inputs.index(row[col_name])  # gets replaced with iterator
         low, high = bin_data[bin_indx][0], bin_data[bin_indx][1]
@@ -95,14 +99,14 @@ class DecoderProxySynth(Decoder):
 
     def _unbin_df(self):
         '''
-        builds the output df using the unbin callback
+        builds the output df using the unbin callback 
         '''
-
-        #TODO check formatting
 
         for k,v in encoding_dict.items():
             if k == 'freq':
                 continue
 
             self.output_df[k] = self.output_df.apply(unbin_int_callback,args=(v,k,),axis=1)
+
+        #TODO check formatting errors after setting
         
