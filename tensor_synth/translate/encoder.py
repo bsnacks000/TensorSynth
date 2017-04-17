@@ -116,8 +116,7 @@ class EncoderProxySynth(Encoder):
         super(EncoderProxySynth,self).__init__(scjson_filepath)  # initialize super class
 
         #set all values
-        self.decoder_config['type'] = 'midi_grain_proxy'
-        
+        self.decoder_config['type'] = 'midi_grain_proxy'    
         self.df_raw = self._import_json(self.scjson_filepath)
         
         self._clean_timestamps()
