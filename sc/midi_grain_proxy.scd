@@ -1,7 +1,11 @@
+(// code block -- boot server
 s.options.memSize_(32768);
 s.options.numAudioBusChannels_(3072);
 s.boot;
-(
+)
+
+
+( // code block -- load synthdefs, create proxy space event and midi buffers
 
 SynthDef(\grain, {|out=0,freq=200,amp=0.1,grain_dur=0.01,pos=0|
 	var sig = FSinOsc.ar(freq) * amp * EnvGen.ar(Env.sine(grain_dur),doneAction:2);
@@ -47,10 +51,6 @@ h = (                   // this gets updated with midi values... saves reconvers
 	\noteOff_timestamp:0
 );
 
-
-)
-
-(
 g = (
 	i: 0,
 	pattern_buff: Array.newClear(128),
@@ -83,17 +83,13 @@ f.cloud_maker = {
 };
 )
 
+// code block MidiConnect
 (
 MIDIClient.init;
 MIDIIn.connectAll;
 )
 
-//verb -- just for fun... do not track values
-//~out.play;
-//~out.stop;
-//~out = nil
-//~out = {FreeVerb.ar(g.pattern_buff[nn].ar,0.7,0.75,0.45)};
-
+// code block MIDIdef controllers
 (
 MIDIdef.noteOn(\noteOnTest, { |vel,nn|
 
@@ -185,4 +181,88 @@ MIDIdef.cc(\ccGrainDurDev,{|value, cc_num|
 
 
 //JSON export
-File.use("grain_improv3.json".resolveRelative,"w",{|f| f.write(JSON.stringify(g.output_dict))});
+File.use("grain_improv_x.json".resolveRelative,"w",{|f| f.write(JSON.stringify(g.output_dict))});
+
+
+//Tensor_Synth input sequencer -- reads a file export.json from data/ into a SC dictionary/event
+// f is the environment namespace used to store the file data
+
+( // load file path and create a sequence
+f.path_name = PathName(thisProcess.nowExecutingPath.dirname).parentPath +/+ "data/tensor_synth_midi_output.json";
+f.input_dict = JSON.parse(File.use(f.path_name,"r", {|json| json.readAllString }));
+
+
+f.event_buffer = Array.newClear(f.input_dict.size);
+f.input_dict.size.do({ |i|
+	f.event_buffer[i] = f.input_dict[i.asSymbol]
+});
+
+// need to keep a reference for noteOff events otherwise they are overwritten in the MIDIIn class method calls
+f.event_freqs = Array.newClear(f.event_buffer.size);
+f.event_buffer.size.do({|i| f.event_freqs[i] = f.event_buffer[i].freq });
+
+)
+
+f.event_freqs
+
+(
+
+f.run = Routine({
+	// initiliaze timings and buffer size
+	var inter_event_time = 1.0;
+	var event_dur = 1.0;
+	var n_events = f.event_buffer.size;
+
+	// all event controller settings
+	var freq,freq_dev,grain_rate,grain_rate_dev,grain_dur,grain_dur_dev,rel,n_voices,amp;
+
+	n_events.do { |i|
+		("EVENT number: "++ i.asString).postln;
+
+		// set current timings to the buffers
+		inter_event_time = f.event_buffer[i]['inter_event_duration'].asFloat;
+		event_dur = f.event_buffer[i]['duration'].asFloat;
+		("current_inter_event: "++inter_event_time.asString).postln;
+		("current_event: "++event_dur.asString).postln;
+
+		// set to current events in the buffer
+		freq = f.event_buffer[i]['freq'].asInt;
+		freq_dev = f.event_buffer[i]['freq_dev'].asInt;
+		grain_rate = f.event_buffer[i]['grain_rate'].asInt;
+		grain_rate_dev = f.event_buffer[i]['grain_rate_dev'].asInt;
+		grain_dur = f.event_buffer[i]['grain_dur'].asInt;
+		grain_dur_dev = f.event_buffer[i]['grain_dur_dev'].asInt;
+		rel = f.event_buffer[i]['rel'].asInt;
+		n_voices = f.event_buffer[i]['n_voices'].asInt;
+		amp = f.event_buffer[i]['amp'].asInt;
+
+		fork {
+			MIDIIn.doControlAction(1,1,21,amp.deepCopy);
+			MIDIIn.doControlAction(1,1,22,rel.deepCopy);
+			MIDIIn.doControlAction(1,1,23,n_voices.deepCopy);
+			MIDIIn.doControlAction(1,1,24,freq_dev.deepCopy);
+			MIDIIn.doControlAction(1,1,25,grain_rate.deepCopy);
+			MIDIIn.doControlAction(1,1,26,grain_rate_dev.deepCopy);
+			MIDIIn.doControlAction(1,1,27,grain_dur.deepCopy);
+			MIDIIn.doControlAction(1,1,28,grain_dur_dev.deepCopy);
+
+			//call noteOn
+
+			("note on called on: "++freq.deepCopy.asString ++ " for event: "++ i.deepCopy.asString).postln;
+			MIDIIn.doNoteOnAction(1,1,freq.deepCopy,1);
+			event_dur.deepCopy.wait;
+			//call noteOff
+			("note off called on: "++f.event_freqs[i.deepCopy].asString ++ " for event: "++ i.deepCopy.asString).postln;
+			MIDIIn.doNoteOffAction(1,1,f.event_freqs[i.deepCopy],1);
+
+		};
+		inter_event_time.wait;
+	}
+});
+
+)
+
+f.run.play;
+f.run.stop;
+
+

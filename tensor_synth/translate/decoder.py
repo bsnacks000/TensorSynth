@@ -77,7 +77,7 @@ class DecoderProxySynth(Decoder):
             
             #TODO raise tsDecoderProxyException formatting errors here
 
-        except tcDecoderProxyException as e:
+        except tsDecoderProxyException as e:
             raise e
 
         return config
