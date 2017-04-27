@@ -1,6 +1,9 @@
 import pandas as pd
+import numpy as np
 import json
 import os
+import string
+
 from abc import ABCMeta, abstractmethod
 
 
@@ -19,10 +22,10 @@ class Decoder(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self,word_series,config_filepath):
+    def __init__(self,word_series,config_file_path):
         
         self.word_series = word_series  #TODO check formatting errors
-        self.config_filepath = config_file_path
+        self.config_file_path = config_file_path
 
         self.config = None
         self.output_df = None
@@ -36,19 +39,25 @@ class Decoder(object):
         pass # this needs to be overwritten for each subclass 
 
     @abstractmethod
-    def _unbin_df(self):
+    def _unbin_df(self, words):
+        pass # this needs to be overwritten for each subclass 
 
+
+    @abstractmethod # static method
+    def unbin_callback(row, bin_data, col_name):
         pass # this needs to be overwritten for each subclass 
 
 
     @abstractmethod
-    @staticmethod
-    def unbin_callback(row, bin_data, col_name):
+    def _split_words(self,words):
+        pass
 
-        pass # this needs to be overwritten for each subclass 
+    @abstractmethod
+    def _make_output_df(self, words):
+        pass
 
 
-    def export_output_to_json(filepath):
+    def export_output_to_json(self,filepath):
         ''' exports the converted df'''
 
         #TODO check valid filepath
@@ -62,12 +71,15 @@ class DecoderProxySynth(Decoder):
     Subclass of Decoder with methods that are configured for the MidiGrain Proxy Synth Spec
     """
 
-    def __init__(self, word_series, config_filepath)
+    def __init__(self, word_series, config_file_path):
         
         super().__init__(word_series, config_file_path)
 
-        self.config = _import_config()
+        self.config = self._import_config()
         self.encoding_dict = self.config['encodings']
+        self.output_df = self._make_output_df()
+
+        self._unbin_df()
     
     def _import_config(self):
         
@@ -102,11 +114,31 @@ class DecoderProxySynth(Decoder):
         builds the output df using the unbin callback 
         '''
 
-        for k,v in encoding_dict.items():
+        for k,v in self.encoding_dict.items():
             if k == 'freq':
                 continue
 
-            self.output_df[k] = self.output_df.apply(unbin_int_callback,args=(v,k,),axis=1)
+            self.output_df[k] = self.output_df.apply(self.unbin_callback,args=(v,k,),axis=1)
 
         #TODO check formatting errors after setting
+        
+
+    def _split_words(self,words):
+        ''' splits up the word strings'''
+        words = [i.split('_') for i in words]
+        for i in range(len(words)):
+            words[i][0] = [words[i][0]]
+            words[i][1] = list(words[i][1])
+            words[i] = words[i][0] + words[i][1]
+        return np.array(words) 
+
+    def _make_output_df(self):
+
+        split_arr = self._split_words(self.word_series)
+
+        return pd.DataFrame(split_arr, columns=[
+            'freq','amp','freq_dev','grain_dur',
+            'grain_dur_dev','grain_rate','grain_rate_dev',
+            'n_voices','rel','duration','inter_event_duration'
+        ])
         

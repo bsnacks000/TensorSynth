@@ -1,7 +1,9 @@
 import pandas as pd
+import numpy as np
 import json
 import os
 
+import tensorflow as tf
 
 from tensor_synth.exceptions import *
 
@@ -25,10 +27,9 @@ class SkipGramTF(object):
         # intialize vars
         self.word_series_input = word_series_input #TODO error handling here 
         self.span = span # TODO can only handle 2 or 4 span window for now...
-        self.span = steps # TODO error check
 
         # initialize data structures
-        self.targets, self.target_index_map_df, self.unique_words_df = _prepare_batch(word_series)
+        self.targets, self.target_index_map_df, self.unique_words_df = self._prepare_batch(self.word_series_input)
 
         self.key_word_dict = self._make_key_word_dict()
         self.word_key_dict = self._make_word_key_dict()
@@ -119,29 +120,30 @@ class SkipGramTF(object):
         self.graph = tf.Graph()
         with self.graph.as_default():
 
-            train_inputs = tf.placeholder(tf.int32, shape=[batch_size])
-            train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
+            self.train_inputs = tf.placeholder(tf.int32, shape=[batch_size])
+            self.train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
             valid_inputs = tf.constant(self.batch, dtype=tf.int32) # for computing cosine similarity 
 
             with tf.device("/cpu:0"):
                 embeddings = tf.Variable(tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
-                embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+                embed = tf.nn.embedding_lookup(embeddings, self.train_inputs)
 
                 nce_weights = tf.Variable(tf.truncated_normal([vocabulary_size, embedding_size], stddev=1.0 / (embedding_size**0.5)))
                 nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
 
-                loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weights, biases=nce_biases,
-                                 labels=train_labels,inputs=embed,num_sampled=num_sampled,
+                self._loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weights, biases=nce_biases,
+                                 labels=self.train_labels,inputs=embed,num_sampled=num_sampled,
                                  num_classes=vocabulary_size
                                  ))
                 # SGD.optimizer
-                optimizer = tf.train.GradientDescentOptimizer(2.0).minimize(loss)
+                self._optimizer = tf.train.GradientDescentOptimizer(2.0).minimize(self._loss)
+
                 
                 # placeholders for                 
                 norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
-                normalized_embeddings = embeddings / norm
-                valid_embeddings = tf.nn.embedding_lookup(normalized_embeddings, valid_inputs)
-                similarity = tf.matmul(valid_embeddings, tf.transpose(normalized_embeddings))
+                self._normalized_embeddings = embeddings / norm
+                valid_embeddings = tf.nn.embedding_lookup(self._normalized_embeddings, valid_inputs)
+                self._similarity = tf.matmul(valid_embeddings, tf.transpose(self._normalized_embeddings))
                 
                 self.init = tf.global_variables_initializer()
 
@@ -153,7 +155,9 @@ class SkipGramTF(object):
         sets: final_embeddings
         sets: model.trained = True on success
         '''
-        if self.graph = None:
+        #TODO throw error here if graph is None
+        if self.graph is None:
+            return
 
         with tf.Session(graph=self.graph) as session:
             self.init.run()
@@ -161,17 +165,17 @@ class SkipGramTF(object):
     
             average_loss = 0
             for step in range(steps):
-                _, loss_val = session.run([optimizer,loss],feed_dict={train_inputs:batch, train_labels:labels})
+                _, loss_val = session.run([self._optimizer,self._loss],feed_dict={self.train_inputs:self.batch, self.train_labels:self.labels})
             
                 average_loss += loss_val  # this code tracks the loss and training progress
-                if step%200 == 0:
+                if step%100 == 0:
                     if step > 0:
                         average_loss /= 100
                     print('Average loss at step ', step,": ",average_loss)
                     average_loss = 0
     
-            self.final_embeddings = normalized_embeddings.eval()
-            self.final_cos_similarity = similarity.eval()
+            self.final_embeddings = self._normalized_embeddings.eval()
+            self.final_cos_similarity = self._similarity.eval()
 
         print('model successfully trained')
         self.model_trained = True

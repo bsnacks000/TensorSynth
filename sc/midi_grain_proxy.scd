@@ -199,7 +199,7 @@ f.input_dict.size.do({ |i|
 
 // need to keep a reference for noteOff events otherwise they are overwritten in the MIDIIn class method calls
 f.event_freqs = Array.newClear(f.event_buffer.size);
-f.event_buffer.size.do({|i| f.event_freqs[i] = f.event_buffer[i].freq });
+f.event_buffer.size.do({|i| f.event_freqs[i] = f.event_buffer[i].freq.asInt });
 
 )
 

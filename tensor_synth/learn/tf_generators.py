@@ -21,7 +21,7 @@ def get_knn_of_target(graph, target, top_k=8):  # TODO unit tests/error check on
         raise tsGeneratorException()
 
     target_word_key = graph.word_key_dict[target]  # gets key from input string - word_key instance var # TODO check for key error
-    nearest = (-graph.final_cos_similarity[i,:].argsort()[1:top_k + 1])   # key word instance var
+    nearest = (-graph.final_cos_similarity[target_word_key,:].argsort()[1:top_k + 1])   # key word instance var
     knn = np.array([graph.key_word_dict[-nearest[k]] for k in range(top_k)])
     return knn
 
@@ -40,7 +40,7 @@ def generate_word_sequence(graph, num_output_words, knn_size): # TODO unit tests
         if i == 0:
             word_seq.append(graph.key_word_dict[np.random.choice(list(graph.key_word_dict.keys()))])
             continue
-        knn = get_knn_of_target(word_seq[i-1])
+        knn = get_knn_of_target(graph,word_seq[i-1])
         word_seq.append(graph.key_word_dict[graph.word_key_dict[np.random.choice(knn)]])
         
     return word_seq
